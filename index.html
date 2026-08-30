@@ -1,0 +1,745 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WarpShare | Quantum Local Transfer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" />
+    <style>
+        :root {
+            --bg: #030407;
+            --primary: #a78bfa;
+            --primary-glow: rgba(167, 139, 250, 0.4);
+            --emerald: #10b981;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text-main);
+            overflow-x: hidden;
+        }
+
+        /* Quantum Wave Canvas */
+        #quantumCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.85;
+            pointer-events: none;
+        }
+
+        /* Loading Screen Overlay */
+        .loader-overlay {
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: opacity 0.6s ease-out;
+        }
+
+        .atom-spinner {
+            width: 80px;
+            height: 80px;
+            position: relative;
+            animation: spin 4s linear infinite;
+        }
+
+        .orbit {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid transparent;
+            border-top-color: var(--primary);
+            border-right-color: var(--emerald);
+        }
+
+        .orbit:nth-child(1) {
+            transform: rotateX(65deg) rotateY(0deg);
+            animation: orbit1 1.5s linear infinite;
+        }
+
+        .orbit:nth-child(2) {
+            transform: rotateX(65deg) rotateY(60deg);
+            animation: orbit2 1.5s linear infinite;
+        }
+
+        .orbit:nth-child(3) {
+            transform: rotateX(65deg) rotateY(120deg);
+            animation: orbit3 1.5s linear infinite;
+        }
+
+        .core {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 12px;
+            height: 12px;
+            background: var(--text-main);
+            border-radius: 50%;
+            box-shadow: 0 0 20px var(--primary);
+        }
+
+        @keyframes spin {
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes orbit1 {
+            100% {
+                transform: rotateX(65deg) rotateY(0deg) rotateZ(360deg);
+            }
+        }
+
+        @keyframes orbit2 {
+            100% {
+                transform: rotateX(65deg) rotateY(60deg) rotateZ(360deg);
+            }
+        }
+
+        @keyframes orbit3 {
+            100% {
+                transform: rotateX(65deg) rotateY(120deg) rotateZ(360deg);
+            }
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            padding: 24px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 100;
+            background: linear-gradient(to bottom, rgba(3, 4, 7, 0.9), transparent);
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 700;
+            font-size: 1.2rem;
+        }
+
+        .nav-links a {
+            color: var(--text-muted);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            text-align: center;
+            position: relative;
+        }
+
+        .content-card {
+            background: rgba(10, 12, 20, 0.65);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(167, 139, 250, 0.2);
+            border-radius: 32px;
+            padding: 50px 40px;
+            max-width: 680px;
+            width: 100%;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6), inset 0 0 40px rgba(167, 139, 250, 0.05);
+            transform: translateY(15px);
+            opacity: 0;
+            transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+        }
+
+        .content-card.loaded {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .logo-box {
+            width: 72px;
+            height: 72px;
+            background: rgba(167, 139, 250, 0.1);
+            border: 1px solid rgba(167, 139, 250, 0.3);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 24px auto;
+            color: var(--primary);
+            font-size: 36px;
+            box-shadow: 0 0 30px rgba(167, 139, 250, 0.2);
+        }
+
+        h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+            letter-spacing: -1px;
+            background: linear-gradient(to right, #fff, #a78bfa);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        p.subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-bottom: 32px;
+            line-height: 1.6;
+        }
+
+        /* Download Buttons Grid */
+        .download-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        @media (min-width: 600px) {
+            .download-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .main-btn {
+                grid-column: span 2;
+            }
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: white;
+            text-decoration: none;
+            padding: 16px 24px;
+            border-radius: 16px;
+            font-weight: 600;
+            font-size: 1.05rem;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 50%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transform: skewX(-20deg);
+            transition: 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 150%;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #7c3aed, #a78bfa);
+            box-shadow: 0 10px 30px rgba(124, 58, 237, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 15px 40px rgba(124, 58, 237, 0.6);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            border-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .sys-req {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            font-family: monospace;
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 40px;
+            color: var(--text-muted);
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(10px);
+            }
+        }
+
+        /* Instructions Section */
+        .instructions {
+            min-height: 100vh;
+            padding: 100px 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 10;
+            background: linear-gradient(to bottom, transparent, #030407 10%);
+        }
+
+        .section-title {
+            font-size: 2.2rem;
+            font-weight: 700;
+            margin-bottom: 60px;
+            text-align: center;
+        }
+
+        .steps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 30px;
+            max-width: 1100px;
+            width: 100%;
+        }
+
+        .step-card {
+            background: rgba(15, 18, 26, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 24px;
+            padding: 32px;
+            backdrop-filter: blur(16px);
+            transition: transform 0.3s, border-color 0.3s;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .step-card:hover {
+            transform: translateY(-5px);
+            border-color: rgba(167, 139, 250, 0.3);
+        }
+
+        /* CSS Mockup Visuals */
+        .visual-mockup {
+            height: 160px;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .mockup-pc {
+            width: 120px;
+            height: 80px;
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mockup-pc::after {
+            content: '';
+            position: absolute;
+            bottom: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 40px;
+            height: 10px;
+            background: var(--primary);
+            border-radius: 0 0 4px 4px;
+        }
+
+        .mockup-pc-screen {
+            flex: 1;
+            background: rgba(167, 139, 250, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mockup-phone {
+            width: 60px;
+            height: 120px;
+            border: 2px solid var(--emerald);
+            border-radius: 12px;
+            background: rgba(16, 185, 129, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .mockup-qr {
+            width: 40px;
+            height: 40px;
+            border: 2px dashed var(--emerald);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mockup-doc {
+            width: 70px;
+            height: 90px;
+            border: 2px solid #38bdf8;
+            background: rgba(56, 189, 248, 0.1);
+            border-radius: 4px;
+            position: relative;
+            transform: rotate(10deg);
+        }
+
+        .mockup-crop-corner {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border: 2px solid #fff;
+            border-radius: 50%;
+            background: #38bdf8;
+        }
+
+        .mockup-doc .tl {
+            top: -5px;
+            left: -5px;
+        }
+
+        .mockup-doc .tr {
+            top: -5px;
+            right: -5px;
+        }
+
+        .mockup-doc .bl {
+            bottom: -5px;
+            left: -5px;
+        }
+
+        .mockup-doc .br {
+            bottom: -5px;
+            right: -5px;
+        }
+
+        /* Fixed Laser Scan Animation */
+        .mockup-beam {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: var(--primary);
+            box-shadow: 0 0 15px var(--primary);
+            animation: scanLaser 2s ease-in-out infinite;
+            opacity: 0;
+        }
+
+        @keyframes scanLaser {
+            0% {
+                top: 10%;
+                opacity: 0;
+            }
+
+            10% {
+                opacity: 1;
+            }
+
+            90% {
+                opacity: 1;
+            }
+
+            100% {
+                top: 90%;
+                opacity: 0;
+            }
+        }
+
+        .step-number {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: rgba(167, 139, 250, 0.2);
+            margin-bottom: 8px;
+            font-family: monospace;
+            line-height: 1;
+        }
+
+        .step-title {
+            font-size: 1.15rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #fff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .step-desc {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* Footer */
+        footer {
+            padding: 60px 20px;
+            text-align: center;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            background: #030407;
+            position: relative;
+            z-index: 10;
+        }
+
+        .quote {
+            font-style: italic;
+            font-size: 0.9rem;
+            color: #475569;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+
+        .creator {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text-muted);
+        }
+
+        .creator span {
+            color: var(--primary);
+            font-weight: 700;
+            text-shadow: 0 0 10px var(--primary-glow);
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2.2rem;
+            }
+
+            .nav-links {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="loader-overlay" id="loader">
+        <div class="atom-spinner">
+            <div class="orbit"></div>
+            <div class="orbit"></div>
+            <div class="orbit"></div>
+            <div class="core"></div>
+        </div>
+        <div
+            style="margin-top: 24px; color: var(--primary); font-weight: 600; letter-spacing: 2px; font-size: 0.85rem;">
+            INITIALIZING QUANTUM STATE</div>
+    </div>
+
+    <canvas id="quantumCanvas"></canvas>
+
+    <nav>
+        <div class="nav-brand"><span class="material-symbols-rounded" style="color: var(--primary);">cyclone</span>
+            WarpShare</div>
+        <div class="nav-links"><a href="#guide">How to Use</a></div>
+    </nav>
+
+    <section class="hero">
+        <div class="content-card" id="mainCard">
+            <div class="logo-box"><span class="material-symbols-rounded">cyclone</span></div>
+            <h1>WarpShare</h1>
+            <p class="subtitle">A standalone, bi-directional local transfer bridge. Bypass the cloud, digitize
+                documents, and forge PDFs instantly over Wi-Fi.</p>
+
+            <div class="download-grid">
+                <a href="warpshare-win.exe" class="btn btn-primary main-btn" download>
+                    <span class="material-symbols-rounded">window</span> Windows (.exe)
+                </a>
+            </div>
+
+            <div class="sys-req">Zero Installation Required • Runs Locally</div>
+        </div>
+
+        <a href="#guide" class="scroll-indicator"><span class="material-symbols-rounded">expand_more</span></a>
+    </section>
+
+    <section class="instructions" id="guide">
+        <h2 class="section-title">Deployment Protocol</h2>
+
+        <div class="steps-grid">
+            <div class="step-card">
+                <div class="visual-mockup">
+                    <div class="mockup-pc">
+                        <div class="mockup-pc-screen"><span class="material-symbols-rounded"
+                                style="color: var(--primary); font-size: 32px;">terminal</span></div>
+                    </div>
+                </div>
+                <div class="step-number">01</div>
+                <div class="step-title"><span class="material-symbols-rounded"
+                        style="color: var(--primary);">power</span> Boot the Hub</div>
+                <div class="step-desc">Double-click the executable on your computer. No installation needed. It
+                    instantly turns your device into a local receiver.</div>
+            </div>
+
+            <div class="step-card">
+                <div class="visual-mockup">
+                    <div class="mockup-phone">
+                        <div class="mockup-qr"><span class="material-symbols-rounded"
+                                style="color: var(--emerald); font-size: 24px;">qr_code</span></div>
+                    </div>
+                </div>
+                <div class="step-number">02</div>
+                <div class="step-title"><span class="material-symbols-rounded"
+                        style="color: var(--emerald);">qr_code_scanner</span> Entangle Devices</div>
+                <div class="step-desc">Open your phone's camera and scan the glowing QR code on your screen to securely
+                    bind your devices over local Wi-Fi.</div>
+            </div>
+
+            <div class="step-card">
+                <div class="visual-mockup">
+                    <div class="mockup-doc">
+                        <div class="mockup-crop-corner tl"></div>
+                        <div class="mockup-crop-corner tr"></div>
+                        <div class="mockup-crop-corner bl"></div>
+                        <div class="mockup-crop-corner br"></div>
+                    </div>
+                </div>
+                <div class="step-number">03</div>
+                <div class="step-title"><span class="material-symbols-rounded"
+                        style="color: #38bdf8;">document_scanner</span> Digitize & Forge</div>
+                <div class="step-desc">Select heavy media files, or use the precision scanner to capture, rotate, and
+                    perfectly crop physical documents.</div>
+            </div>
+
+            <div class="step-card">
+                <div class="visual-mockup">
+                    <span class="material-symbols-rounded"
+                        style="color: var(--primary); font-size: 48px; z-index: 10;">rocket_launch</span>
+                    <div class="mockup-beam"></div>
+                </div>
+                <div class="step-number">04</div>
+                <div class="step-title"><span class="material-symbols-rounded"
+                        style="color: var(--primary);">send</span> Warp Matter</div>
+                <div class="step-desc">Enter an optional batch name. Send as native photos or forge a multi-page PDF.
+                    Watch the payload teleport instantly.</div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="quote">"What I cannot create, I do not understand."</div>
+        <div class="creator">Engineered by <span>Kunj Prajapati</span></div>
+    </footer>
+
+    <script>
+        window.addEventListener('load', () => {
+            window.scrollTo(0, 0);
+            setTimeout(() => {
+                const loader = document.getElementById('loader');
+                loader.style.opacity = '0';
+                document.getElementById('mainCard').classList.add('loaded');
+                setTimeout(() => { loader.style.display = 'none'; }, 600);
+            }, 800);
+        });
+
+        const canvas = document.getElementById('quantumCanvas');
+        const ctx = canvas.getContext('2d');
+        let width, height;
+
+        function resize() { width = canvas.width = window.innerWidth; height = canvas.height = window.innerHeight; }
+        window.addEventListener('resize', resize); resize();
+
+        const waves = [];
+        for (let i = 0; i < 8; i++) {
+            waves.push({
+                amplitude: 30 + Math.random() * 60, wavelength: 0.002 + Math.random() * 0.006,
+                speed: (Math.random() > 0.5 ? 1 : -1) * (0.005 + Math.random() * 0.015), phase: Math.random() * Math.PI * 2
+            });
+        }
+        let time = 0;
+
+        function renderQuantumField() {
+            ctx.fillStyle = 'rgba(3, 4, 7, 0.25)'; ctx.fillRect(0, 0, width, height);
+            time += 1;
+
+            ctx.beginPath();
+            for (let x = 0; x < width; x += 4) {
+                let y = height / 2;
+                waves.forEach((wave, index) => { y += Math.sin(x * wave.wavelength + time * wave.speed + wave.phase) * (wave.amplitude * Math.sin(time * 0.0015 + index)); });
+                if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.strokeStyle = 'rgba(167, 139, 250, 0.25)'; ctx.lineWidth = 2.5; ctx.stroke();
+
+            ctx.beginPath();
+            for (let x = 0; x < width; x += 4) {
+                let y = height / 2;
+                waves.forEach((wave, index) => { if (index % 2 === 0) { y += Math.cos(x * (wave.wavelength * 1.5) - time * (wave.speed * 1.2)) * wave.amplitude * 0.5; } });
+                if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            }
+            ctx.strokeStyle = 'rgba(16, 185, 129, 0.15)'; ctx.lineWidth = 1.5; ctx.stroke();
+
+            for (let i = 0; i < 6; i++) {
+                const px = Math.random() * width; let py = height / 2;
+                waves.forEach(wave => { py += Math.sin(px * wave.wavelength + time * wave.speed + wave.phase) * wave.amplitude; });
+                if (Math.random() > 0.8) {
+                    ctx.beginPath(); ctx.arc(px, py + (Math.random() * 80 - 40), Math.random() * 2.5, 0, Math.PI * 2);
+                    ctx.fillStyle = Math.random() > 0.6 ? '#10b981' : '#a78bfa'; ctx.shadowBlur = 15; ctx.shadowColor = ctx.fillStyle; ctx.fill(); ctx.shadowBlur = 0;
+                }
+            }
+            requestAnimationFrame(renderQuantumField);
+        }
+        renderQuantumField();
+    </script>
+</body>
+
+</html>
